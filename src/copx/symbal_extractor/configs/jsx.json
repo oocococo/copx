@@ -1,0 +1,63 @@
+{
+  "tree_sitter_module": "tree_sitter_javascript",
+  "language_accessor_name": "language",
+  "extraction_rules": [
+    {
+      "node_type": "function_declaration",
+      "symbol_type": "function_component",
+      "name_field": "name"
+    },
+    {
+      "node_type": "class_declaration",
+      "symbol_type": "class_component",
+      "name_field": "name"
+    },
+    {
+      "node_type": "method_definition",
+      "symbol_type": "method",
+      "name_field": "name"
+    },
+    {
+      "node_type": "variable_declarator",
+      "process_children": {
+        "child_node_type": ["identifier"],
+        "name_field_on_child": null,
+        "symbol_type": "variable"
+      }
+    },
+    {
+      "node_type": "lexical_declaration",
+      "process_children": {
+          "child_node_type": ["variable_declarator"],
+          "name_field_on_child": "name",
+          "symbol_type": "variable"
+      }
+    },
+    {
+      "node_type": "assignment_expression",
+      "process_children": {
+          "child_node_type": ["identifier"],
+          "name_field_on_child": null,
+          "symbol_type": "variable"
+      }
+    },
+    {
+      "node_type": "export_statement",
+      "process_children": {
+        "child_node_type": [
+          "function_declaration",
+          "class_declaration",
+          "lexical_declaration",
+          "variable_declaration"
+        ],
+        "name_field_on_child": "name",
+        "type_mapping": {
+          "function_declaration": "exported_function_component",
+          "class_declaration": "exported_class_component",
+          "lexical_declaration": "exported_variable",
+          "variable_declaration": "exported_variable"
+        }
+      }
+    }
+  ]
+}

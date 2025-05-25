@@ -1,0 +1,105 @@
+{
+  "tree_sitter_module": "tree_sitter_typescript",
+  "language_accessor_name": "language_typescript",
+  "extraction_rules": [
+    {
+      "node_type": "function_declaration",
+      "symbol_type": "function",
+      "name_field": "name"
+    },
+    {
+      "node_type": "function_signature",
+      "symbol_type": "function_signature",
+      "name_field": "name"
+    },
+    {
+      "node_type": "class_declaration",
+      "symbol_type": "class",
+      "name_field": "name"
+    },
+    {
+      "node_type": "method_definition",
+      "symbol_type": "method",
+      "name_field": "name"
+    },
+    {
+      "node_type": "method_signature",
+      "symbol_type": "method_signature",
+      "name_field": "name"
+    },
+    {
+      "node_type": "lexical_declaration",
+      "process_children": {
+          "child_node_type": ["variable_declarator"],
+          "name_field_on_child": "name",
+          "symbol_type": "variable"
+      }
+    },
+    {
+      "node_type": "variable_declarator",
+      "process_children": {
+        "child_node_type": ["identifier"],
+        "name_field_on_child": null,
+        "symbol_type": "variable"
+      }
+    },
+    {
+      "node_type": "public_field_definition",
+      "symbol_type": "property",
+      "name_field": "name"
+    },
+    {
+      "node_type": "interface_declaration",
+      "symbol_type": "interface",
+      "name_field": "name"
+    },
+    {
+      "node_type": "type_alias_declaration",
+      "symbol_type": "type_alias",
+      "name_field": "name"
+    },
+    {
+      "node_type": "enum_declaration",
+      "symbol_type": "enum",
+      "name_field": "name"
+    },
+    {
+      "node_type": "module",
+      "symbol_type": "module",
+      "name_field": "name"
+    },
+    {
+      "node_type": "namespace",
+      "symbol_type": "namespace",
+      "name_field": "name"
+    },
+    {
+      "node_type": "export_statement",
+      "process_children": {
+        "child_node_type": [
+          "function_declaration",
+          "class_declaration",
+          "interface_declaration",
+          "type_alias_declaration",
+          "enum_declaration",
+          "lexical_declaration",
+          "variable_declaration",
+          "module",
+          "namespace"
+        ],
+        "name_field_on_child": "name",
+        "type_mapping": {
+          "function_declaration": "exported_function",
+          "class_declaration": "exported_class",
+          "interface_declaration": "exported_interface",
+          "type_alias_declaration": "exported_type_alias",
+          "enum_declaration": "exported_enum",
+          "lexical_declaration": "exported_variable",
+          "variable_declaration": "exported_variable",
+          "module": "exported_module",
+          "namespace": "exported_namespace"
+        }
+      }
+    }
+  ]
+}

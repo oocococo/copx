@@ -1,0 +1,36 @@
+{
+  "tree_sitter_module": "tree_sitter_go",
+  "extraction_rules": [
+    {
+      "node_type": "function_declaration",
+      "symbol_type": "function",
+      "name_field": "name"
+    },
+    {
+      "node_type": "method_declaration",
+      "symbol_type": "method",
+      "name_field": "name"
+    },
+    {
+      "node_type": "type_declaration",
+      "process_children": {
+        "child_node_type": "type_spec",
+        "name_field_on_child": "name",
+        "type_determining_field_on_child": "type",
+        "type_mapping": {
+          "struct_type": "struct",
+          "interface_type": "interface"
+        },
+        "default_symbol_type": "type_alias"
+      }
+    },
+    {
+      "node_type": "var_declaration",
+      "process_children": {
+        "child_node_type": "var_spec",
+        "name_node_is_list_on_child": "name",
+        "symbol_type": "global_variable"
+      }
+    }
+  ]
+}

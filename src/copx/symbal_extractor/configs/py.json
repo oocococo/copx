@@ -1,0 +1,39 @@
+{
+  "tree_sitter_module": "tree_sitter_python",
+  "extraction_rules": [
+    {
+      "node_type": "function_definition",
+      "symbol_type": "function",
+      "name_field": "name"
+    },
+    {
+      "node_type": "class_definition",
+      "symbol_type": "class",
+      "name_field": "name"
+    },
+    {
+      "node_type": "decorated_definition",
+      "process_children": {
+        "child_node_type": [
+          "class_definition",
+          "function_definition"
+        ],
+        "name_field_on_child": "name",
+        "type_mapping": {
+          "class_definition": "class",
+          "function_definition": "function"
+        }
+      }
+    },
+    {
+      "node_type": "assignment",
+      "symbol_type": "global_variable",
+      "name_field": "left"
+    },
+    {
+      "node_type": "typed_parameter",
+      "symbol_type": "variable",
+      "name_field": "identifier"
+    }
+  ]
+}

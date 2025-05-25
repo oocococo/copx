@@ -1,0 +1,21 @@
+[project]
+name = "copx"
+version = "0.1.0"
+description = "copx-mcp"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+  "aiofiles>=24.1.0",
+  "fastapi[standard]>=0.115.12",
+  "litellm>=1.70.4",
+  "mcp[cli]>=1.9.1",
+  "pathspec>=0.12.1",
+  "pocketflow>=0.0.2",
+  "tree-sitter>=0.24.0",
+  "tree-sitter-go>=0.23.4",
+  "tree-sitter-javascript>=0.23.1",
+  "tree-sitter-python>=0.23.6",
+  "tree-sitter-typescript>=0.23.2",
+]
+[project.scripts]
+copx-mcp = "copx.copx_mcp:main"
