@@ -13,6 +13,7 @@ logger = logging.getLogger("copx.symbal_extractor.symbol_extractor")
 
 # --- Configuration and Language Loading ---
 DEFAULT_CONFIG_DIR = Path(__file__).parent / "configs"
+_language_config_cache = {} # Cache for loaded language configurations
 
 
 class ConfigurationError(Exception):
@@ -24,14 +25,20 @@ class TreeSitterLanguageNotFoundError(Exception):
 
 
 async def load_language_config(file_extension, config_dir=DEFAULT_CONFIG_DIR):
-    """Loads the language-specific configuration file asynchronously."""
+    """Loads the language-specific configuration file asynchronously, with caching."""
+    cache_key = (str(config_dir), file_extension)
+    if cache_key in _language_config_cache:
+        return _language_config_cache[cache_key]
+
     config_file = config_dir / f"{file_extension.lstrip('.')}.json"
     if not await asyncio.to_thread(config_file.exists):
         raise ConfigurationError(f"Configuration file not found: {config_file}")
     try:
         async with aiofiles.open(config_file, "r", encoding="utf-8") as f:
             content = await f.read()
-            return await asyncio.to_thread(json.loads, content)
+            config_data = await asyncio.to_thread(json.loads, content)
+            _language_config_cache[cache_key] = config_data # Store in cache
+            return config_data
     except json.JSONDecodeError as e:
         raise ConfigurationError(f"Error decoding JSON from {config_file}: {e}")
     except Exception as e:
@@ -134,13 +141,8 @@ async def extract_symbols_from_code(root_node, code_bytes, lang_config):
                         if child.type in child_types_to_process:
                             declaration_start_line = child.start_point[0] + 1
                             declaration_end_line = child.end_point[0] + 1
-                            name_node = (
-                                child.child_by_field_name(
-                                    pc_rule["name_field_on_child"]
-                                )
-                                if "name_field_on_child" in pc_rule
-                                else None
-                            )
+                            name_field_key = pc_rule.get("name_field_on_child")
+                            name_node = child.child_by_field_name(name_field_key) if name_field_key else None
 
                             if "type_determining_field_on_child" in pc_rule:
                                 type_det_node = child.child_by_field_name(
