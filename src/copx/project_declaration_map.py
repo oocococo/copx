@@ -1,4 +1,5 @@
 import os
+import logging
 import subprocess
 import pickle  # 用于序列化 declaration map
 from typing import Dict, List
@@ -9,6 +10,9 @@ from datetime import datetime
 
 from copx.symbal_extractor.symbol_extractor import extract_symbols_from_file
 from copx.utils import iter_project_files
+
+
+logger = logging.getLogger("copx.project_declaration_map")
 
 #####################
 # 1. Git管理模块
@@ -203,7 +207,7 @@ class DeclarationMapManager:
                     self.declaration_map, self.commit_id = data
                     return
             except Exception as e:
-                print(f"Error loading declaration map {self.decl_map_file}: {e}")
+                logging.error(f"Error loading declaration map {self.decl_map_file}: {e}")
         self.declaration_map, self.commit_id = {}, None
 
     async def save_decl_map(self, commit_id: str):
@@ -216,14 +220,14 @@ class DeclarationMapManager:
                 await f.flush()
             await aiofiles.os.replace(tmp_file, self.decl_map_file)
         except Exception as e:
-            print(f"Error saving declaration map to {self.decl_map_file}: {e}")
+            logging.error(f"Error saving declaration map to {self.decl_map_file}: {e}")
 
     def remove_file_declarations(self, file_path: str):
         if file_path in self.declaration_map:
             del self.declaration_map[file_path]
 
     def update_file_declarations(self, file_path: str, symbols: List[dict]):
-        print(f"save {file_path} for {symbols}")
+        logging.info(f"save {file_path} for {symbols}")
         self.declaration_map[file_path] = symbols
 
     def get_all_declarations(self) -> List[dict]:
@@ -278,7 +282,7 @@ async def update_project_declaration_map(project_path, hidden_git_root_path):
                     if symbols is not None and len(symbols) > 0:
                         return file_rel_path_inner, symbols
                 except Exception as e_file:
-                    print(f"分析{file_rel_path_inner}失败: {e_file}")
+                    logging.error(f"分析{file_rel_path_inner}失败: {e_file}")
                 return file_rel_path_inner, None
 
             tasks.append(process_file(file_rel_path, abs_file))
@@ -330,7 +334,7 @@ async def update_project_declaration_map(project_path, hidden_git_root_path):
                         if symbols is not None and len(symbols) > 0:
                             return file_rel_path_inner, symbols
                     except Exception as e_file:
-                        print(f"补分析{file_rel_path_inner}时失败: {e_file}")
+                        logging.error(f"补分析{file_rel_path_inner}时失败: {e_file}")
                 return file_rel_path_inner, None
 
             tasks_catchup.append(process_file_catchup(file_rel_path, abs_file))
@@ -421,7 +425,7 @@ async def update_project_declaration_map(project_path, hidden_git_root_path):
                     if symbols is not None and len(symbols) > 0:
                         return file_rel_path_inner, symbols
                 except Exception as e_file:
-                    print(f"分析{file_rel_path_inner}时失败: {e_file}")
+                    logging.error(f"分析{file_rel_path_inner}时失败: {e_file}")
             return file_rel_path_inner, None
 
         tasks_snapshot.append(process_file_snapshot(file_rel_path, abs_file))
@@ -458,11 +462,11 @@ async def async_main():
         os.makedirs(git_hidden_root)
 
     decl_map, changed = await update_project_declaration_map(proj_path, git_hidden_root)
-    print("此次变更涉及:", changed)
+    logging.info("此次变更涉及:", changed)
     if decl_map:
-        print("全量symbol数量:", sum(len(v) for v in decl_map.values()))
+        logging.info("全量symbol数量:", sum(len(v) for v in decl_map.values()))
     else:
-        print("未能生成符号映射。")
+        logging.info("未能生成符号映射。")
 
 
 if __name__ == "__main__":

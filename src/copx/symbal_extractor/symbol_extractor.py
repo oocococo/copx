@@ -1,11 +1,15 @@
 import argparse
 import json
+import logging
 from pathlib import Path
 import importlib
 import asyncio
 import aiofiles
 
 from tree_sitter import Language, Parser
+
+# 获取logger
+logger = logging.getLogger("copx.symbal_extractor.symbol_extractor")
 
 # --- Configuration and Language Loading ---
 DEFAULT_CONFIG_DIR = Path(__file__).parent / "configs"
@@ -72,7 +76,7 @@ async def get_tree_sitter_language(lang_module_name, lang_config=None):
     except ImportError:
         raise TreeSitterLanguageNotFoundError(
             f"Tree-sitter language module '{lang_module_name}' not found. "
-            f"Please install it (e.g., 'pip install {lang_module_name.replace('_', '-')}')"
+            f"Please install it (e.g., 'pip install {lang_module_name.replace('_', '-')}')" 
         )
     except Exception as e:
         raise TreeSitterLanguageNotFoundError(
@@ -252,12 +256,12 @@ async def extract_symbols_from_code(root_node, code_bytes, lang_config):
 async def extract_symbols_from_file(filepath, config_dir=DEFAULT_CONFIG_DIR):
     filepath = Path(filepath)
     if not await asyncio.to_thread(filepath.exists) or not await asyncio.to_thread(filepath.is_file):
-        print(f"Error: File not found or is not a file: {filepath}")
+        logger.error(f"Error: File not found or is not a file: {filepath}")
         return
 
     file_extension = filepath.suffix
     if not file_extension:
-        print(f"Error: Could not determine file extension for {filepath}")
+        logger.error(f"Error: Could not determine file extension for {filepath}")
         return
 
     try:
@@ -278,22 +282,29 @@ async def extract_symbols_from_file(filepath, config_dir=DEFAULT_CONFIG_DIR):
         symbols = await extract_symbols_from_code(root_node, code_bytes, lang_config)
 
         if not symbols:
-            print(f"No symbols found in {filepath} based on the current configuration.")
+            logger.info(f"No symbols found in {filepath} based on the current configuration.")
             return
 
         return symbols
 
     except ConfigurationError as e:
-        print(f"Configuration Error: {e}")
+        logger.error(f"Configuration Error: {e}")
     except TreeSitterLanguageNotFoundError as e:
-        print(f"Language Loading Error: {e}")
+        logger.error(f"Language Loading Error: {e}")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        logger.error(f"An unexpected error occurred: {e}")
         import traceback
-        traceback.print_exc()
+        logger.error(traceback.format_exc())
 
 
 async def main():
+    # 设置基本的日志配置
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        filename='/tmp/copx/copx.log'
+    )
+    
     parser_arg = argparse.ArgumentParser(
         description="Extracts symbols (functions, structs, etc.) from source code files."
     )
@@ -311,16 +322,16 @@ async def main():
     symbols = await extract_symbols_from_file(filepath, args.config_dir)
 
     if symbols:
-        print(f"Symbols found in {filepath}:")
+        logger.info(f"Symbols found in {filepath}:")
         # Potentially CPU-bound, but usually small lists for printing
         max_name_len = await asyncio.to_thread(max, (len(s["name"]) for s in symbols), default=10)
         max_type_len = await asyncio.to_thread(max, (len(s["type"]) for s in symbols), default=10)
 
         header = f"{'Name':<{max_name_len}} | {'Type':<{max_type_len}} | ID Line | Decl Start | Decl End"
-        print(header)
-        print("-" * len(header))
+        logger.info(header)
+        logger.info("-" * len(header))
         for sym in symbols:
-            print(
+            logger.info(
                 f"{sym['name']:<{max_name_len}} | {sym['type']:<{max_type_len}} | {str(sym['identifier_line']):<7} | {str(sym['declaration_start_line']):<10} | {str(sym['declaration_end_line']):<8}"
             )
 

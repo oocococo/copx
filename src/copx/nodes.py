@@ -1,7 +1,11 @@
+import logging
 from pocketflow import AsyncNode  # Changed Node to AsyncNode
 from copx.prompts.answer import ANSWER_WRITER
 
 from copx.tools import extract_tool_calls, TOOL_NAME_LIST, invoke_tool
+
+# 获取logger
+logger = logging.getLogger("copx.nodes")
 
 
 class AnswerFormulator(AsyncNode):  # Changed Node to AsyncNode
@@ -22,6 +26,8 @@ class AnswerFormulator(AsyncNode):  # Changed Node to AsyncNode
         response = await llm_client.call_llm(
             messages=[{"role": "user", "content": prompt}]
         )
+
+        logger.info(f"🤖 Agent's final response: {response}")
         return response
 
     async def post_async(self, shared, prep_res, exec_res):
@@ -44,9 +50,12 @@ class CodeRetriver(AsyncNode):  # Changed Node to AsyncNode
             raise ValueError("llm_client not found in shared")
         response = await llm_client.call_llm(messages=messages)
 
-        print(f"🤖 Agent's response: {response}")
+        logger.info(f"🤖 Agent's response: {response}")
 
         tool_calls = extract_tool_calls(response, TOOL_NAME_LIST)
+
+        logger.info(f"🤖 Agent's tool calls: {tool_calls}")
+        
         use_tool = False
         if len(tool_calls) > 0:
             use_tool = True
@@ -97,6 +106,8 @@ class CodeRetriver(AsyncNode):  # Changed Node to AsyncNode
         final_results_str = "\n\n--------------------\n\n".join(
             formatted_tool_results_list
         )
+
+        logger.info(f"🤖 Agent's tool use results: {final_results_str}")
 
         return response, use_tool, final_results_str
 

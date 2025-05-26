@@ -1,6 +1,10 @@
 import os
+import logging
 from pathspec import PathSpec
 from pathspec.patterns.gitwildmatch import GitWildMatchPattern
+
+# 获取logger
+logger = logging.getLogger("copx.project_tree")
 
 
 def format_size(size_bytes: int) -> str:
@@ -47,7 +51,7 @@ def get_directory_tree_for_llm(root_dir: str) -> str:
                     if stripped_line and not stripped_line.startswith("#"):
                         ignore_patterns.append(stripped_line)
         except Exception as e:
-            print(f"警告：无法读取 .gitignore 文件 '{gitignore_path}': {e}")
+            logger.warning(f"警告：无法读取 .gitignore 文件 '{gitignore_path}': {e}")
 
     spec = PathSpec.from_lines(GitWildMatchPattern, ignore_patterns)
 
@@ -122,6 +126,13 @@ def get_directory_tree_for_llm(root_dir: str) -> str:
 
 
 if __name__ == "__main__":
+    # 设置基本的日志配置
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        filename='/tmp/copx/copx.log'
+    )
+    
     # 创建一个示例目录结构用于测试
     if not os.path.exists("test_project"):
         os.makedirs("test_project/src/utils")
@@ -157,12 +168,12 @@ if __name__ == "__main__":
             f.write("*.pyc\n")
             f.write("__pycache__/\n")
 
-    print("--- 目录树 (test_project) ---")
+    logger.info("--- 目录树 (test_project) ---")
     tree_output = get_directory_tree_for_llm("test_project")
-    print(tree_output)
+    logger.info(tree_output)
 
     tree_output = get_directory_tree_for_llm("/Users/bytedance/Projects/DTS/dts-mgr")
-    print(tree_output)
+    logger.info(tree_output)
 
     # 清理测试目录 (可选)
     import shutil

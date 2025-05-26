@@ -61,11 +61,11 @@ TOOL USE GUIDELINES
 You must use tools to gather information. Tool use is formatted using XML-style tags. The tool name is enclosed in opening and closing tags, and each parameter is similarly enclosed within its own set of tags. You can use **one tool per message**. You will receive the result of that tool use, which will inform your next step.
 
 Structure:
-<tool_name>
+<the_tool_name_you_use>
   <parameter1_name>value1</parameter1_name>
   <parameter2_name>value2</parameter2_name>
   ...
-</tool_name>
+</the_tool_name_you_use>
 
 Example:
 <view_file_content>

@@ -1,4 +1,5 @@
 import os
+import logging
 from tree_sitter import Language, Parser
 import tree_sitter_go
 import pathspec
@@ -7,6 +8,8 @@ from lancedb.pydantic import LanceModel, Vector
 from lancedb.embeddings import EmbeddingFunctionRegistry, EmbeddingFunction
 import numpy as np
 
+# 获取logger
+logger = logging.getLogger("copx.semantic_search")
 
 GO_LANGUAGE = Language(tree_sitter_go.language())
 
@@ -162,10 +165,17 @@ def search_methods(query, top_k=5):
 
 # DEMO 示例：初始化和搜索
 if __name__ == "__main__":
+    # 设置基本的日志配置
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        filename='/tmp/copx/copx.log'
+    )
+    
     import sys
 
     if len(sys.argv) < 2:
-        print("用法: python script.py <目录路径>")
+        logger.error("用法: python script.py <目录路径>")
         exit(1)
 
     # 首次插入数据
@@ -174,15 +184,15 @@ if __name__ == "__main__":
     method_tuples = collect_go_functions_methods_from_dir(sys.argv[1])
 
     for filepath, method_name in method_tuples:
-        print(method_name)
+        logger.info(method_name)
     exit(0)
     insert_methods(method_tuples)
 
     # 搜索接口
     q = input("输入要查找的描述(如 '添加用户'): ")
     candidates = search_methods(q, top_k=3)
-    print("Top results:")
+    logger.info("Top results:")
     for item in candidates:
-        print(
+        logger.info(
             f"路径: {item['path']} 方法: {item['method']} 相似度: {item['score']:.4f}"
         )

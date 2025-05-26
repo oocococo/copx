@@ -1,7 +1,35 @@
 import os
+import logging
 from pathspec import PathSpec
 from pathspec.patterns.gitwildmatch import GitWildMatchPattern
 import litellm
+
+
+def setup_logging(log_path=None):
+    """
+    设置日志系统
+    - log_path: 日志文件路径，如果为None则使用默认路径 /tmp/copx/copx.log
+    """
+    if log_path is None:
+        log_path = "/tmp/copx/copx.log"
+    
+    # 确保日志目录存在
+    log_dir = os.path.dirname(log_path)
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
+    
+    # 配置日志格式
+    log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    logging.basicConfig(
+        level=logging.INFO,
+        format=log_format,
+        handlers=[
+            logging.FileHandler(log_path),
+            logging.StreamHandler()
+        ]
+    )
+    
+    return logging.getLogger("copx")
 
 
 class LLMClient:
@@ -11,9 +39,10 @@ class LLMClient:
         self.api_key = api_key
         self.total_input_tokens = 0
         self.total_output_tokens = 0
+        self.logger = logging.getLogger("copx.llm")
 
     async def call_llm(self, messages):
-        # print(f"Sending messages to LLM: {messages}")
+        # self.logger.debug(f"Sending messages to LLM: {messages}")
         response = await litellm.acompletion(
             model=self.model_id,
             messages=messages,
@@ -21,7 +50,7 @@ class LLMClient:
             api_key=self.api_key,
         )
         response_content = response.choices[0].message.content
-        # print(f"Received response from LLM: {response_content}")
+        # self.logger.debug(f"Received response from LLM: {response_content}")
 
         # 统计 token 数量
         if response.usage:
@@ -46,6 +75,7 @@ def iter_project_files(
     - 可指定是否包含隐藏文件（默认不包含）
     - 可额外附加ignore pattern
     """
+    logger = logging.getLogger("copx.files")
     abs_root = os.path.abspath(root_dir)
     # 加载 .gitignore
     gitignore_path = os.path.join(abs_root, ".gitignore")
@@ -62,7 +92,7 @@ def iter_project_files(
                     if stripped_line and not stripped_line.startswith("#"):
                         ignore_patterns.append(stripped_line)
         except Exception as e:
-            print(f"警告：无法读取 .gitignore 文件 '{gitignore_path}': {e}")
+            logger.warning(f"警告：无法读取 .gitignore 文件 '{gitignore_path}': {e}")
 
     spec = PathSpec.from_lines(GitWildMatchPattern, ignore_patterns)
 
@@ -70,7 +100,7 @@ def iter_project_files(
         try:
             entries = os.listdir(dir_path)
         except Exception as e:
-            print(f"无法列举目录 {dir_path}: {e}")
+            logger.warning(f"无法列举目录 {dir_path}: {e}")
             return
 
         dirs = []
@@ -105,6 +135,6 @@ def iter_project_files(
 
 # ========== 用法示例 ==========
 # for dirpath, dirnames, filenames in iter_project_files("/path/to/project"):
-#     print("目录:", dirpath)
-#     print("子目录:", dirnames)
-#     print("文件:", filenames)
+#     logger.debug(f"目录: {dirpath}")
+#     logger.debug(f"子目录: {dirnames}")
+#     logger.debug(f"文件: {filenames}")
