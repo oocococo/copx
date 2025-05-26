@@ -81,6 +81,8 @@ class CodeRetriver(AsyncNode):  # Changed Node to AsyncNode
                 params_formatted = "Params:\n"
                 if isinstance(call.params, dict) and call.params:
                     for arg_name, arg_value in call.params.items():
+                        if arg_name == "declaration_map":
+                            continue
                         params_formatted += f"  {arg_name}: {str(arg_value)}\n"
                     params_formatted = params_formatted.rstrip("\n")
                 elif call.params is not None:

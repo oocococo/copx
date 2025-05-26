@@ -1,105 +1,118 @@
 import re
-import os
-from typing import Dict, List, Any, Awaitable
+from typing import Dict, List, Any, Optional, Awaitable # Awaitable kept for consistency if other tools need it
 
 from .use_tools import TOOL_FUNC_MAP, TOOL_NAME_LIST
 
 async def grep_declaration_map(
     declaration_map: Dict[str, List[Dict[str, Any]]],
-    pattern: str, 
-    file_path: str = None, 
-    case_sensitive: str = "false"
+    search_pattern: str,
+    is_regex: bool = False,
+    target_declaration_types: Optional[List[str]] = None
 ) -> Dict[str, Any]:
     """
-    在 declaration_map 中的符号名称内搜索正则表达式模式。
+    Performs a search (literal string or regular expression) across all identifiers 
+    and types in the pre-computed Declaration Map for the entire codebase.
 
     Args:
-        declaration_map (Dict[str, List[Dict[str, Any]]]): 要搜索的声明映射。
-        pattern (str): 要在符号名称中搜索的正则表达式模式。
-        file_path (str, optional): 如果提供，则仅在此文件的声明中搜索。
-                                   路径应相对于项目根目录，与 declaration_map 中的键匹配。
-                                   默认为 None (搜索所有文件)。
-        case_sensitive (str, optional): "true" 表示区分大小写的搜索，
-                                        "false" 表示不区分大小写。默认为 "false"。
+        declaration_map (Dict[str, List[Dict[str, Any]]]): The pre-computed declaration map.
+            Example: {"module/file.py": [{"name": "my_func", "type": "function", 
+                                          "start_point": (0,0), "end_point": (1,10)}, ...]}
+        search_pattern (str): The string or regular expression pattern to search for in
+                              the declaration identifiers or types.
+        is_regex (bool, optional): Set to true if search_pattern is a regular expression.
+                                   Defaults to False.
+        target_declaration_types (Optional[List[str]], optional): A list of declaration types
+                                   to filter the search by (e.g., ["function", "class"]).
+                                   If None, searches all types. If an empty list is provided,
+                                   it effectively matches no types. Defaults to None.
 
     Returns:
-        Dict[str, Any]: 包含搜索结果的字典。
-                        结构: {"results": [{"file": "path", "matching_symbols": [...]}]}
-                        或 {"error": "message"} 如果发生全局错误。
+        Dict[str, Any]: A dictionary containing a list of matches or an error message.
+                        Each match includes file path, identifier, type, and code location.
+                        Structure: {"results": [
+                            {"file_path": str, "identifier": str, "type": str, 
+                             "location": {"start_line": int, "start_column": int, 
+                                          "end_line": int, "end_column": int}}, ...
+                        ]}
+                        or {"error": "message"}.
     """
-    is_case_sensitive = isinstance(case_sensitive, str) and case_sensitive.lower() == "true"
-    regex_flags = 0 if is_case_sensitive else re.IGNORECASE
-
-    current_decl_map = declaration_map
-
-    if not isinstance(current_decl_map, dict):
+    if not isinstance(declaration_map, dict):
         return {
-            "error": "global_decl_map 不可用、不是字典，或者 app 模块未正确加载。",
+            "error": "Declaration map is not available or is not a dictionary.",
             "results": []
         }
 
-    if not current_decl_map and not file_path: # Map 为空且搜索所有文件
-         return {"results": []} # 没有错误，只是没有符号可供搜索
+    results: List[Dict[str, Any]] = []
+    compiled_regex = None
 
-    search_results = []
-    files_to_process = []
+    if is_regex:
+        try:
+            # For regex search, case sensitivity is controlled by the pattern itself (e.g. (?i) for ignore case)
+            compiled_regex = re.compile(search_pattern)
+        except re.error as e:
+            return {"error": f"Invalid regular expression pattern: {e}", "results": []}
 
-    if file_path:
-        if not isinstance(file_path, str):
-            return {"error": "file_path 参数必须是字符串。", "results": []}
-        
-        if file_path in current_decl_map:
-            symbols_list = current_decl_map.get(file_path)
-            if isinstance(symbols_list, list):
-                files_to_process.append((file_path, symbols_list))
-            else:
-                return {
-                    "error": f"文件 '{file_path}' 在声明映射中的数据格式错误 (不是列表)。",
-                    "results": []
-                }
-        else:
-            # 提供了文件路径但在声明映射中未找到
-            return {"results": []} # 没有错误，只是此文件没有结果，与 grep 行为一致
-    else:
-        # 搜索所有文件
-        for f_path, symbols_list in current_decl_map.items():
-            if isinstance(symbols_list, list): # 检查每个条目
-                files_to_process.append((f_path, symbols_list))
-            # else: 可以选择跳过格式错误的条目或记录警告
+    for file_path, symbols_list in declaration_map.items():
+        if not isinstance(symbols_list, list):
+            # Skip malformed entries in the declaration_map
+            continue
 
-    if not files_to_process: # 如果没有文件可处理 (例如，map 为空或所有条目均格式错误)
-        return {"results": []}
-
-    for f_path, symbols_list_for_file in files_to_process:
-        matching_symbols_for_file = []
-        for symbol_info in symbols_list_for_file:
-            if not isinstance(symbol_info, dict) or "name" not in symbol_info:
-                # 跳过格式错误的符号条目
+        for symbol_info in symbols_list:
+            if not isinstance(symbol_info, dict):
                 continue
 
-            symbol_name = symbol_info.get("name")
-            if not isinstance(symbol_name, str):
-                # 跳过名称非字符串的符号
+            identifier = symbol_info.get("name")
+            symbol_actual_type = symbol_info.get("type") # e.g., "function", "class", "variable"
+
+            # Ensure identifier and symbol_actual_type are strings for searching
+            if not isinstance(identifier, str) or not isinstance(symbol_actual_type, str):
                 continue
 
-            try:
-                if re.search(pattern, symbol_name, regex_flags):
-                    matching_symbols_for_file.append(symbol_info)
-            except re.error as e:
-                # 此错误适用于整个操作（如果正则表达式无效）
-                return {"error": f"无效的正则表达式模式: {e}", "results": []}
-            except TypeError:
-                # 如果 pattern 或 symbol_name 不是字符串/字节/None，则可能发生
-                return {"error": "正则表达式搜索因类型错误失败 (例如 pattern 或 symbol name)。", "results": []}
+            # 1. Filter by target_declaration_types
+            if target_declaration_types is not None:  # If None, this filter is skipped (all types pass)
+                if not target_declaration_types:  # Empty list provided (e.g. [])
+                    continue  # Effectively matches no types through this filter
+                if symbol_actual_type not in target_declaration_types:
+                    continue
+            
+            # 2. Perform search on identifier or symbol_actual_type
+            match_found = False
+            if is_regex and compiled_regex:
+                # Search in identifier OR type
+                if compiled_regex.search(identifier) or compiled_regex.search(symbol_actual_type):
+                    match_found = True
+            elif not is_regex: # Literal string search (case-sensitive substring search)
+                if search_pattern in identifier or search_pattern in symbol_actual_type:
+                    match_found = True
+            
+            if match_found:
+                location: Dict[str, int] = {}
+                start_point = symbol_info.get("start_point")
+                end_point = symbol_info.get("end_point")
 
-        if matching_symbols_for_file:
-            search_results.append({
-                "file": f_path,
-                "matching_symbols": matching_symbols_for_file
-            })
+                if isinstance(start_point, (list, tuple)) and len(start_point) >= 1 and isinstance(start_point[0], int):
+                    location["start_line"] = start_point[0] + 1  # 0-indexed to 1-indexed
+                if isinstance(start_point, (list, tuple)) and len(start_point) >= 2 and isinstance(start_point[1], int):
+                    location["start_column"] = start_point[1] + 1 # 0-indexed to 1-indexed
+                
+                if isinstance(end_point, (list, tuple)) and len(end_point) >= 1 and isinstance(end_point[0], int):
+                    location["end_line"] = end_point[0] + 1
+                if isinstance(end_point, (list, tuple)) and len(end_point) >= 2 and isinstance(end_point[1], int):
+                    location["end_column"] = end_point[1] + 1
 
-    return {"results": search_results}
+                results.append({
+                    "file_path": file_path,
+                    "identifier": identifier,
+                    "type": symbol_actual_type,
+                    "location": location
+                })
+
+    return {"results": results}
 
 
-TOOL_NAME_LIST.append("grep_declaration_map")
+# Register the tool (ensure this matches how tools are registered in your project)
+# The tool name in the prompt is 'grep_declaration_map'.
+# If the key in TOOL_FUNC_MAP or entry in TOOL_NAME_LIST was different, it has been standardized here.
+if "grep_declaration_map" not in TOOL_NAME_LIST: # Avoid duplicate entries if script re-run
+    TOOL_NAME_LIST.append("grep_declaration_map")
 TOOL_FUNC_MAP["grep_declaration_map"] = grep_declaration_map
