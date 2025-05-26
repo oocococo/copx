@@ -1,6 +1,6 @@
 [project]
 name = "copx"
-version = "0.1.2"
+version = "0.1.3"
 description = "copx-mcp"
 readme = "README.md"
 requires-python = ">=3.13"
