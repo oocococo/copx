@@ -1,0 +1,35 @@
+{
+  "tree_sitter_module": "tree_sitter_c",
+  "extraction_rules": [
+    {
+      "node_type": "function_definition",
+      "symbol_type": "function",
+      "name_field": "declarator"
+    },
+    {
+      "node_type": "struct_specifier",
+      "symbol_type": "struct",
+      "name_field": "name"
+    },
+    {
+      "node_type": "union_specifier",
+      "symbol_type": "union",
+      "name_field": "name"
+    },
+    {
+      "node_type": "enum_specifier",
+      "symbol_type": "enum",
+      "name_field": "name"
+    },
+    {
+      "node_type": "type_definition",
+      "symbol_type": "type_alias",
+      "name_field": "declarator"
+    },
+    {
+      "node_type": "declaration",
+      "symbol_type": "global_variable",
+      "name_field": "declarator"
+    }
+  ]
+}
