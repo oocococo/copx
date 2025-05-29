@@ -13,7 +13,7 @@ class CodeQuery(BaseModel):
     base_url: str = ""
     api_key: str = ""
     git_path: str = ""
-    log_path: str = ""  # 添加日志文件路径参数
+    log_path: str|None = ""  # 添加日志文件路径参数
 
 
 app = fastapi.FastAPI()
@@ -49,6 +49,7 @@ async def query(query: CodeQuery):
 
     decl_map, changed = await update_project_declaration_map(proj_path, git_path)
     logger.info(f"Modified files: {changed}")
+    logger.info(f"Indexed files: {len(decl_map)}")
     llm_client = LLMClient(
         model_id=query.model, base_url=query.base_url, api_key=query.api_key
     )

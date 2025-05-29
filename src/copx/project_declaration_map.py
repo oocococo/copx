@@ -207,7 +207,9 @@ class DeclarationMapManager:
                     self.declaration_map, self.commit_id = data
                     return
             except Exception as e:
-                logging.error(f"Error loading declaration map {self.decl_map_file}: {e}")
+                logging.error(
+                    f"Error loading declaration map {self.decl_map_file}: {e}"
+                )
         self.declaration_map, self.commit_id = {}, None
 
     async def save_decl_map(self, commit_id: str):

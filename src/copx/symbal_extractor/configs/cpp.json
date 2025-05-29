@@ -1,0 +1,61 @@
+{
+  "tree_sitter_module": "tree_sitter_cpp",
+  "extraction_rules": [
+    {
+      "node_type": "function_definition",
+      "symbol_type": "function",
+      "name_field": "declarator"
+    },
+    {
+      "node_type": "class_specifier",
+      "symbol_type": "class",
+      "name_field": "name"
+    },
+    {
+      "node_type": "struct_specifier",
+      "symbol_type": "struct",
+      "name_field": "name"
+    },
+    {
+      "node_type": "union_specifier",
+      "symbol_type": "union",
+      "name_field": "name"
+    },
+    {
+      "node_type": "enum_specifier",
+      "symbol_type": "enum",
+      "name_field": "name"
+    },
+    {
+      "node_type": "namespace_definition",
+      "symbol_type": "namespace",
+      "name_field": "name"
+    },
+    {
+      "node_type": "type_definition",
+      "symbol_type": "type_alias",
+      "name_field": "declarator"
+    },
+    {
+      "node_type": "declaration",
+      "symbol_type": "global_variable",
+      "name_field": "declarator"
+    },
+    {
+      "node_type": "template_declaration",
+      "process_children": {
+        "child_node_type": [
+          "class_specifier",
+          "function_definition",
+          "struct_specifier"
+        ],
+        "name_field_on_child": "name",
+        "type_mapping": {
+          "class_specifier": "template_class",
+          "function_definition": "template_function",
+          "struct_specifier": "template_struct"
+        }
+      }
+    }
+  ]
+}
