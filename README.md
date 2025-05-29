@@ -1,64 +1,84 @@
-# ✨ CopX - Your **Co**de **P**roject E**x**pert ✨
+# ✨ CopX - 你的**代**码**项**目专**家** ✨
 
-[中文](docs/README_zh.md)
+[English](../README_en.md)
 
-🚀 **Co**de **P**roject E**x**pert (CopX) is a system designed to answer questions about any codebase.
-- Explore, search your codebase agentically (like a human expoert).
-- No embedding needed.
+🚀 **代**码**项**目专**家** (CopX) 是一个旨在对任意代码库进行问答的系统
+- **快速**：基于声明的上下文检索，无需 embedding 模型。
+- **准确**：语义搜索和精确的代码结构分析，确保答案的准确性。
+- **灵活**：支持多种编程语言，可轻松扩展。
+- **高效**：增量更新和 Git 支持，确保处理大型代码库时的效率。
 
-## Core Features
+## 核心功能
 
-*   **Declaration-Based Context**: Understands code structure by parsing source files and building a "declaration map" of symbols (functions, classes, variables, etc.). This allows for precise, non-embedding-based retrieval of relevant code context.
-*   **Incremental Updates**: Utilizes a hidden Git repository to track file changes and incrementally updates the declaration map, ensuring efficiency for large codebases.
-*   **Hybrid Retrieval (Optional)**: Can integrate with semantic search (e.g., using LanceDB and embedding models) for queries that benefit from semantic understanding, complementing the primary declaration-based retrieval.
-*   **LLM-Powered Q&A**: Leverages Large Language Models (LLMs) to understand questions and formulate answers based on the retrieved context.
-*   **Multi-Language Support**: Easily extensible to support various programming languages through Tree-sitter configurations. Currently supports Python, Golang, TypeScript, and JavaScript out-of-the-box.
-*   **Flexible Deployment**: Can be run as a FastAPI service or an MCP (Model Context Protocol) server.
+*   **基于声明的上下文**: 通过解析源文件并构建符号（函数、类、变量等）的“声明地图”来理解代码结构。这允许精确地、不基于 embedding 地检索相关代码上下文。
+*   **增量更新**: 利用隐藏的 Git 仓库跟踪文件更改，并增量更新声明地图，确保大型代码库的效率。
+*   **混合检索 (可选)**: 可以集成语义搜索（例如，使用 LanceDB 和 embedding 模型）用于那些受益于语义理解的查询，作为主要基于声明检索的补充。
+*   **LLM 驱动的问答**: 利用大型语言模型 (LLM) 理解问题，并根据检索到的上下文形成答案。
+*   **多语言支持**: 通过 Tree-sitter 配置，可以轻松扩展以支持各种编程语言。目前开箱即用支持 Python、Golang、TypeScript 和 JavaScript。
+*   **灵活部署**: 可以作为 FastAPI 服务或 MCP (模型上下文协议) 服务器运行。
 
-## Workflow Diagram
+### CopX 效果展示：理解 mem0 项目
 
-Here's a simplified diagram of the agent's workflow:
+为了展示 CopX 在理解复杂代码项目方面的能力，我们进行了一个对比实验。我们选择了 [mem0](https://github.com/mem0ai/mem0) 项目作为分析对象。
+
+1.  **标准 Cline (Plan 模式)**：直接向 Cline 提问。
+2.  **集成 CopX 的 Cline (通过 MCP)**：Cline 利用 CopX MCP 工具对 `mem0` 进行分析。
+
+以下是结果对比：
+
+| 特性| 标准 Cline (Plan 模式) | CopX (通过 MCP)|
+| :----------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **提示词** | How does this project organize memories?| How does this project organize memories? |
+| **模型** |gemini-2.5-pro|gemini-2.5-pro|
+| **回答** |![cline](docs/cline.png) |![alt text](docs/copx.png) |
+| **完整回答**   | [docs/ask_cline_mem0.md](docs/ask_cline_mem0.md)| [docs/ask_copx_mem0.md](docs/ask_copx_mem0.md)|
+
+
+
+## 工作流程图
+
+以下是 agent 工作流程的简化图示：
 
 ```mermaid
 graph TD
-    A[User Question] --> B{CopX Agent};
+    A[用户问题] --> B{CopX Agent};
 
-    subgraph "CopX Core Processing Pipeline"
-        B --> D[1 Update/Load Declaration Map];
-        D --> E["Symbol Extractor (Tree-sitter) + Git Manager"];
-        E --> F[(Declaration Map <br/> .pkl + .git Store)];
+    subgraph "CopX 核心处理流程"
+        B --> D[1 更新/加载声明地图];
+        D --> E["符号提取器 (Tree-sitter) + Git 管理器"];
+        E --> F[(声明地图 <br/> .pkl + .git 存储)];
         
-        D --> G["2 Agentic Code Retrieval <br/> Tools: <br/> - view_file_declaration_map <br/> - view_file_content <br/> - grep_declaration_map <br/> - grep_search <br/> - semantic_search_declaration_map"];
-        G -- Uses --> F;
-        G -- Optional: Semantic Search --> H[(LanceDB)];
+        D --> G["2 代码检索 <br/> 工具: <br/> - view_file_declaration_map (查看文件声明地图) <br/> - view_file_content (查看文件内容) <br/> - grep_declaration_map (搜索声明地图) <br/> - grep_search (文本内容搜索) <br/> - semantic_search_declaration_map (语义搜索声明地图)"];
+        G -- 使用 --> F;
+        G -- 可选: 语义搜索 --> H[(LanceDB)];
         
-        G --> I["3 Formulate Answer (LLM)"];
+        G --> I["3 构建答案 (LLM)"];
     end
     
-    I --> J[Return Answer];
+    I --> J[返回答案];
     J --> A;
 ```
 
-## Usage Guide
+## 使用指南
 
-CopX can be run in two modes: as an MCP server or as a FastAPI service.
+CopX 可以通过两种模式运行：作为 MCP 服务器或作为 FastAPI 服务。
 
-### 1. MCP (Model Context Protocol) Server
+### 1. MCP (模型上下文协议) 服务器
 
-The MCP server exposes CopX's capabilities as a tool that can be used by MCP-compatible clients (e.g., AI IDEs).
+MCP 服务器将 CopX 的功能公开为一个工具，可供兼容 MCP 的客户端（例如 AI IDE）使用。
 
-**Prerequisites:**
-*   Ensure you have `uv` installed. You can install it by following the instructions at [https://github.com/astral-sh/uv](https://github.com/astral-sh/uv).
+**先决条件:**
+*   确保已安装 `uv`。您可以按照 [https://github.com/astral-sh/uv](https://github.com/astral-sh/uv) 上的说明进行安装。
 
-**To run:**
-Execute the following command in your terminal:
+**运行方式:**
+在您的终端中执行以下命令：
 ```bash
 uvx --from copx copx-mcp
 ```
-This will start the MCP server, registering a tool named "Ask Expert".
+这将启动 MCP 服务器，并注册一个名为 "Ask Expert" 的工具。
 
-**Recommended AI IDE Configuration:**
-You can integrate CopX MCP server into your AI IDE (like those supporting MCP) using a configuration similar to this:
+**推荐的 AI IDE 配置:**
+您可以将 CopX MCP 服务器集成到您的 AI IDE (例如支持 MCP 的 IDE) 中，使用类似以下的配置：
 
 ```json
 {
@@ -70,10 +90,10 @@ You can integrate CopX MCP server into your AI IDE (like those supporting MCP) u
       "copx-mcp"
     ],
     "env": {
-      "COPX_MODEL": "ollama/devstral",
-      "COPX_DATA_PATH": "~/Documents/Copx",
-      "COPX_API_KEY": "YOUR_KEY_HERE",
-      "COPX_BASE_URL": "YOUR_LLM_BASE_URL_HERE"
+      "COPX_MODEL": "ollama/devstral", // 例如："openai/gpt-4"
+      "COPX_DATA_PATH": "/home/yourname/Documents/Copx", // 例如：持久化路径
+      "COPX_API_KEY": "你的API密钥",
+      "COPX_BASE_URL": "你的LLM基础URL"
     },
     "disabled": false,
     "autoApprove": [
@@ -83,95 +103,95 @@ You can integrate CopX MCP server into your AI IDE (like those supporting MCP) u
   }
 }
 ```
-**Parameter Explanations:**
-*   `COPX_MODEL`: Specifies litellm style model name for CopX (e.g., `"ollama/devstral"`, `"openai/gpt-4"`).
-*   `COPX_DATA_PATH`: The directory where CopX stores its internal data, such as declaration maps and Git snapshots for projects (e.g., `"~/Documents/Copx"`). It's recommended to use a persistent path.
-*   `COPX_API_KEY`: Your API key for the selected LLM service.
-*   `COPX_BASE_URL`: The base URL for your LLM API endpoint.
+**参数说明:**
+*   `COPX_MODEL`: 指定 CopX 使用的 litellm 风格的模型名称 (例如, `"ollama/devstral"`, `"openai/gpt-4"`)。
+*   `COPX_DATA_PATH`: CopX 存储其内部数据的目录，例如项目的声明地图和 Git 快照 (例如, `"~/Documents/Copx"`)。建议使用持久路径。
+*   `COPX_API_KEY`: 您选择的 LLM 服务的 API 密钥。
+*   `COPX_BASE_URL`: 您的 LLM API 端点的基础 URL。
 
-**MCP Tool: `Ask Expert`**
-*   **Description**: Get expert answer about project's codebase.
-*   **Arguments**:
-    *   `project_path` (string, required): The absolute path to the project codebase.
-    *   `question` (string, required): The question about the codebase.
+**MCP 工具: `Ask Expert`**
+*   **描述**: 获取关于项目代码库的专家答案。
+*   **参数**:
+    *   `project_path` (字符串, 必需): 项目代码库的绝对路径。
+    *   `question` (字符串, 必需): 关于代码库的问题。
 
-### 2. FastAPI Service
+### 2. FastAPI 服务
 
-The FastAPI service provides an HTTP endpoint for querying.
+FastAPI 服务提供了一个用于查询的 HTTP 端点。
 
-**Configuration:**
-The query endpoint accepts LLM configuration parameters directly in the request body.
+**配置:**
+查询端点直接在请求体中接受 LLM 配置参数。
 
-**To run:**
-Use Uvicorn (or any ASGI server):
+**运行方式:**
+使用 Uvicorn (或任何 ASGI 服务器):
 ```bash
 uvicorn copx.copx_fastapi:app --reload --host 0.0.0.0 --port 8000
 ```
 
-**API Endpoint: `POST /query`**
+**API 端点: `POST /query`**
 
-Request Body (`application/json`):
+请求体 (`application/json`):
 ```json
 {
   "project_path": "/path/to/your/codebase",
-  "question": "How does the user authentication work?",
-  "model": "openai/gpt-4", // litellm format                
+  "question": "用户认证是如何工作的？",
+  "model": "openai/gpt-4", // litellm 格式                
   "base_url": "https://api.example.com/v1", 
   "api_key": "your_llm_api_key",    
   "git_path": "~/.copx_data"        
 }
 ```
-*   `project_path`: Absolute path to the codebase you want to query.
-*   `question`: Your question about the codebase.
-*   `model`, `base_url`, `api_key`: LLM provider details.
-*   `git_path`: Directory where CopX will store its cache (declaration maps and git snapshots). It's recommended to use a persistent path like `~/.copx_data` or `./.copx_data` in your project. If the directory doesn't exist, CopX will create it.
+*   `project_path`: 您要查询的代码库的绝对路径。
+*   `question`: 您关于代码库的问题。
+*   `model`, `base_url`, `api_key`: LLM 提供商的详细信息。
+*   `git_path`: CopX 将存储其缓存（声明地图和 git 快照）的目录。建议使用持久路径，例如 `~/.copx_data` 或项目中的 `./.copx_data`。如果目录不存在，CopX 将创建它。
 
-## How It Works
+## 工作原理
 
-CopX processes user queries about a codebase through a multi-stage pipeline:
+CopX 通过一个多阶段流程处理用户关于代码库的查询：
 
-1.  **Declaration Map Update/Load**:
-    *   When a query is received for a project, CopX first ensures its declaration map is up-to-date.
-    *   It uses a `ProjectGitManager` to track file changes since the last run.
-    *   A `SymbolExtractor` (powered by Tree-sitter) parses modified or new files according to language-specific rules.
-    *   The extracted symbols (functions, classes, variables, with their locations) are stored in the `declaration_map`. This map is persisted as a `.pkl` file, and the file versions are tracked in a hidden `.git` repository within a specified data directory.
+1.  **声明地图更新/加载**:
+    *   当收到项目的查询时，CopX 首先确保其声明地图是最新的。
+    *   它使用 `ProjectGitManager` 跟踪自上次运行以来的文件更改。
+    *   `SymbolExtractor`（由 Tree-sitter驱动）根据特定语言的规则解析修改过的或新的文件。
+    *   提取的符号（函数、类、变量及其位置）存储在 `declaration_map` 中。此地图作为 `.pkl` 文件持久化，并且文件版本在指定数据目录内的隐藏 `.git` 仓库中进行跟踪。
 
-2.  **Code Retrieval**:
-    *   The `CodeRetriever` node uses the `declaration_map` to find code segments directly relevant to the user's query based on symbol names and code structure.
-    *   Optionally, for broader or more abstract queries, it can utilize semantic search (if configured) on a LanceDB index of code (e.g., function bodies).
+2.  **代码检索**:
+    *   `CodeRetriever` 节点使用 `declaration_map` 根据符号名称和代码结构查找与用户查询直接相关的代码段。
+    *   可选地，对于更广泛或更抽象的查询，它可以利用（如果已配置）对代码的 LanceDB 索引（例如函数体）进行语义搜索。
 
-3.  **Answer Formulation**:
-    *   The `AnswerFormulator` node takes the retrieved context (from the declaration map and/or semantic search) and the original question.
-    *   It then interacts with an LLM to generate a comprehensive answer.
+3.  **答案构建**:
+    *   `AnswerFormulator` 节点获取检索到的上下文（来自声明地图和/或语义搜索）和原始问题。
+    *   然后它与 LLM 交互以生成全面的答案。
 
-## Supported Languages
+## 支持的语言
 
-CopX uses Tree-sitter for code parsing and supports languages via configuration files found in `src/copx/symbal_extractor/configs/`.
-Currently supported:
+CopX 使用 Tree-sitter 进行代码解析，并通过 `src/copx/symbal_extractor/configs/` 目录下的配置文件支持各种语言。
+目前支持：
 
 *   Python (`.py`)
 *   Golang (`.go`)
 *   JavaScript (`.js`, `.jsx`)
 *   TypeScript (`.ts`, `.tsx`)
 
-## Adding Support for a New Language
+## 添加对新语言的支持
 
-To add support for a new programming language:
+要添加对新编程语言的支持：
 
-1.  **Install Tree-sitter grammar**:
-    Find the Python binding for the Tree-sitter grammar (e.g., `tree-sitter-ruby`) and install it:
+1.  **安装 Tree-sitter 语法库**:
+    找到该语言的 Tree-sitter 语法的 Python 绑定 (例如, `tree-sitter-ruby`) 并安装它：
     ```bash
     pip install tree-sitter-newlanguage
     ```
 
-2.  **Create a configuration file**:
-    In the `src/copx/symbal_extractor/configs/` directory, create a new JSON file (e.g., `newlanguage.json`).
-    This file needs to specify:
-    *   `tree_sitter_module`: The name of the installed Python module for the language (e.g., `tree_sitter_newlanguage`).
-    *   `language_accessor_name` (optional): If the language object in the module is not accessed by `module.language`, specify the correct accessor (e.g., `get_language`).
-    *   `extraction_rules`: An array of rules defining which AST node types correspond to which symbols (function, class, variable, etc.) and how to extract their names. Refer to existing config files (e.g., `py.json`, `go.json`) for examples.
+2.  **创建配置文件**:
+    在 `src/copx/symbal_extractor/configs/` 目录下，创建一个新的 JSON 文件 (例如, `newlanguage.json`)。
+    此文件需要指定：
+    *   `tree_sitter_module`: 已安装的该语言的 Python 模块名称 (例如, `tree_sitter_newlanguage`)。
+    *   `language_accessor_name` (可选): 如果模块中的语言对象不是通过 `module.language` 访问的，请指定正确的访问器 (例如, `get_language`)。
+    *   `extraction_rules`: 一个规则数组，定义哪些 AST 节点类型对应哪些符号（函数、类、变量等）以及如何提取它们的名称。有关示例，请参阅现有的配置文件 (例如, `py.json`, `go.json`)。
 
-    Example `newlanguage.json`:
+    示例 `newlanguage.json`:
     ```json
     {
       "tree_sitter_module": "tree_sitter_newlanguage",
@@ -186,27 +206,28 @@ To add support for a new programming language:
           "name_field": "name",
           "symbol_type": "Class"
         }
-        // ... more rules
+        // ... 更多规则
       ]
     }
     ```
 
-## Installation
+## 安装
 
-1.  **Clone the repository:**
+1.  **克隆仓库:**
     ```bash
-    git clone <repository_url>
+    git clone <repository_url> # 替换为实际的仓库 URL
     cd copx
     ```
 
-2.  **Install dependencies:**
-    It's recommended to use a virtual environment.
+2.  **安装依赖:**
+    建议使用虚拟环境。
     ```bash
     python -m venv .venv
-    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-    pip install -r requirements.txt # Or: uv pip install -r requirements.txt
+    source .venv/bin/activate  # Windows 系统: .venv\Scripts\activate
+    pip install -r requirements.txt # 或者: uv pip install -r requirements.txt
+    # (假设后续会生成 requirements.txt 文件，或列出关键依赖)
+    # 关键依赖包括: fastapi, uvicorn, pocketflow, pydantic, tree_sitter, aiofiles, lancedb (可选), 以及各种 tree-sitter 语言绑定。
     ```
-    You'll need to install Tree-sitter language bindings for the languages you intend to support, for example:
+    您需要为计划支持的语言安装 Tree-sitter 语言绑定，例如:
     ```bash
     pip install tree-sitter-python tree-sitter-go tree-sitter-javascript tree-sitter-typescript
-    ```
