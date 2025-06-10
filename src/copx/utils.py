@@ -43,21 +43,25 @@ class LLMClient:
 
     async def call_llm(self, messages):
         # self.logger.debug(f"Sending messages to LLM: {messages}")
-        response = await litellm.acompletion(
+        stream = await litellm.acompletion(
             model=self.model_id,
             messages=messages,
             api_base=self.base_url,
             api_key=self.api_key,
+            stream=True,
         )
-        response_content = response.choices[0].message.content
-        # self.logger.debug(f"Received response from LLM: {response_content}")
+        chunks = []
+        async for chunk in stream:
+            chunks.append(chunk)
+        resp = litellm.stream_chunk_builder(chunks,messages=messages)
+        self.logger.info(f"Received response from LLM: {resp}")
 
         # 统计 token 数量
-        if response.usage:
-            self.total_input_tokens += response.usage.prompt_tokens
-            self.total_output_tokens += response.usage.completion_tokens
+        if resp.usage is not None:
+            self.total_input_tokens += resp.usage.prompt_tokens
+            self.total_output_tokens += resp.usage.completion_tokens
         
-        return response_content
+        return resp.choices[0].message.content
 
     def get_token_usage(self):
         return {

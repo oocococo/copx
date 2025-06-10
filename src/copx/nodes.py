@@ -12,6 +12,7 @@ class AnswerFormulator(AsyncNode):  # Changed Node to AsyncNode
     async def prep_async(self, shared):
         messages = shared.get("messages")
         query = shared.get("query")
+        logger.info(f"Use AnswerFormulator to generate the final answer for {query}")
         self.params["shared"] = shared
         return query, messages
 
@@ -27,6 +28,7 @@ class AnswerFormulator(AsyncNode):  # Changed Node to AsyncNode
             messages=[{"role": "user", "content": prompt}]
         )
 
+        logger.info(f"Agent's final input {prompt[:1000]}")
         logger.info(f"🤖 Agent's final response: {response}")
         return response
 
